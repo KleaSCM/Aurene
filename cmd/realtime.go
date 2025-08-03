@@ -76,6 +76,8 @@ func runRealtimeTest(cmd *cobra.Command, args []string) {
 	tasksCompleted := int64(0)
 	deadlineMisses := 0
 
+	fmt.Printf("\n🔄 Creating real-time tasks...\n")
+
 	for i := int64(0); i < realtimeTotalTasks; i++ {
 		deadline := time.Duration(rand.Int64N(int64(realtimeDeadlineRange[1]-realtimeDeadlineRange[0]))) + realtimeDeadlineRange[0]
 		priority := rand.IntN(realtimePriorityRange[1]-realtimePriorityRange[0]) + realtimePriorityRange[0]
@@ -94,11 +96,20 @@ func runRealtimeTest(cmd *cobra.Command, args []string) {
 		rtStrategy.AddTask(task)
 		tasksCreated++
 
+		if i%100 == 0 {
+			fmt.Printf("\r📊 Created: %d/%d tasks", tasksCreated, realtimeTotalTasks)
+		}
+
 		time.Sleep(time.Microsecond * time.Duration(rand.IntN(100)))
 	}
 
+	fmt.Printf("\n🔄 Starting real-time scheduling...\n")
+
 	ticker := time.NewTicker(time.Millisecond * 10)
 	defer ticker.Stop()
+
+	progressTicker := time.NewTicker(time.Second)
+	defer progressTicker.Stop()
 
 	done := make(chan bool)
 	go func() {
@@ -114,7 +125,18 @@ func runRealtimeTest(cmd *cobra.Command, args []string) {
 			if currentTask != nil && currentTask.IsFinished() {
 				tasksCompleted++
 			}
+		case <-progressTicker.C:
+			elapsed := time.Since(startTime)
+			throughput := float64(tasksCompleted) / elapsed.Seconds()
+			stats := rtStrategy.GetStats()
+			if misses, exists := stats["deadline_misses"]; exists {
+				deadlineMisses = misses.(int)
+			}
+
+			fmt.Printf("\r⚡ Progress: %d completed | Throughput: %.1f tasks/sec | Deadline Misses: %d",
+				tasksCompleted, throughput, deadlineMisses)
 		case <-done:
+			fmt.Printf("\n") // New line after progress
 			goto finish
 		}
 	}

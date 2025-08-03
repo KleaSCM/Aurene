@@ -91,11 +91,16 @@ func runMathTest(cmd *cobra.Command, args []string) {
 	ticker := time.NewTicker(time.Millisecond * 10)
 	defer ticker.Stop()
 
+	progressTicker := time.NewTicker(time.Second)
+	defer progressTicker.Stop()
+
 	done := make(chan bool)
 	go func() {
 		time.Sleep(mathDuration)
 		done <- true
 	}()
+
+	fmt.Printf("\n🔄 Starting task processing...\n")
 
 	for {
 		select {
@@ -110,7 +115,15 @@ func runMathTest(cmd *cobra.Command, args []string) {
 			if currentTask != nil && currentTask.IsFinished() {
 				tasksCompleted++
 			}
+		case <-progressTicker.C:
+			elapsed := time.Since(startTime)
+			throughput := float64(tasksCompleted) / elapsed.Seconds()
+			progress := float64(tasksProcessed) / float64(mathTotalTasks) * 100
+
+			fmt.Printf("\r📊 Progress: %.1f%% | Tasks: %d/%d | Completed: %d | Throughput: %.1f tasks/sec",
+				progress, tasksProcessed, mathTotalTasks, tasksCompleted, throughput)
 		case <-done:
+			fmt.Printf("\n") // New line after progress
 			goto finish
 		}
 	}
