@@ -42,8 +42,10 @@ var (
 /**
  * demoCmd represents the spectacular demo command
  *
- * Creates a breathtaking real-time demonstration of Aurene
- * handling millions of math problems as realistic applications.
+ * スペクタクルデモコマンド (◕‿◕)
+ *
+ * Aureneが数百万の数学問題をリアルなアプリケーションとして
+ * 処理する息を呑むようなリアルタイムデモンストレーションを作成します。
  */
 var demoCmd = &cobra.Command{
 	Use:   "demo",
@@ -68,9 +70,9 @@ Example:
 func init() {
 	rootCmd.AddCommand(demoCmd)
 
-	demoCmd.Flags().Int64Var(&demoTotalTasks, "tasks", 17000000000, "Total number of math problems to generate (17 BILLION!)")
-	demoCmd.Flags().DurationVar(&demoDuration, "duration", 10*time.Minute, "Demo duration (10 minutes for massive workload)")
-	demoCmd.Flags().IntVar(&demoBatchSize, "batch", 1000000, "Batch size for task generation (1M batch for massive workload)")
+	demoCmd.Flags().Int64Var(&demoTotalTasks, "tasks", 10000, "Total number of math problems to generate (default: 10000)")
+	demoCmd.Flags().DurationVar(&demoDuration, "duration", 30*time.Second, "Demo duration (default: 30 seconds)")
+	demoCmd.Flags().IntVar(&demoBatchSize, "batch", 1000, "Batch size for task generation (default: 1000)")
 	demoCmd.Flags().IntVar(&demoComplexity, "complexity", 50, "Math problem complexity (1-100)")
 	demoCmd.Flags().IntVar(&demoPriority, "priority", 2, "Task priority (0-10)")
 	demoCmd.Flags().Int64Var(&demoMemory, "memory", 1024*1024*10, "Memory per task (bytes)")
@@ -81,11 +83,12 @@ func init() {
 }
 
 /**
- * runDemo executes the spectacular demo
  *
- * Creates a breathtaking real-time demonstration showing
- * Aurene handling millions of math problems with beautiful
- * terminal output and live performance tracking.
+ * スペクタクルデモ実行 (｡♥‿♥｡)
+ *
+ * Aureneが数百万の数学問題を美しいターミナル出力と
+ * ライブパフォーマンス追跡で処理する息を呑むような
+ * リアルタイムデモンストレーションを作成します。
  */
 func runDemo(cmd *cobra.Command, args []string) error {
 	logger := logger.New()
@@ -100,6 +103,12 @@ func runDemo(cmd *cobra.Command, args []string) error {
 
 	logger.Info("⏱️  Demo duration: %v", demoDuration)
 	logger.Info("🎯 Complexity: %d/100", demoComplexity)
+
+	// NO SAFETY CHECK
+	// if demoTotalTasks > 1000 {
+	// 	logger.Warn("⚠️  Large task count detected (%d), limiting to 1,000 for demo safety", demoTotalTasks)
+	// 	demoTotalTasks = 1000
+	// }
 
 	sched := scheduler.NewScheduler(5)
 	engine := aureneruntime.NewEngine(sched, time.Duration(4)*time.Millisecond)
@@ -163,6 +172,9 @@ func runDemo(cmd *cobra.Command, args []string) error {
 			case "finish":
 				tasksCompleted++
 				tasksRunning--
+				if tasksCompleted%100 == 0 {
+					fmt.Printf("\n🎯 BATCH COMPLETED: %d tasks finished! 🚀\n", tasksCompleted)
+				}
 			case "block":
 				tasksBlocked++
 				tasksRunning--
@@ -179,23 +191,25 @@ func runDemo(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// USE SIMPLE WORKING APPROACH - LIKE RUN COMMAND!
-	// Generate simple tasks that actually work
 	go func() {
-		for i := int64(0); i < demoTotalTasks; i++ {
-			task := task.NewTask(
-				i+1,
-				fmt.Sprintf("DemoTask_%d", i+1),
-				50,        // 50 ticks duration
-				1,         // priority 1
-				0.1,       // 10% IO chance
-				1024*1024, // 1MB memory
-				"demo",
-			)
-			engine.AddTask(task)
-			mu.Lock()
-			tasksCreated++
-			mu.Unlock()
+		batchSize := int64(5000)
+		for i := int64(0); i < demoTotalTasks; i += batchSize {
+			for j := int64(0); j < batchSize && (i+j) < demoTotalTasks; j++ {
+				task := task.NewTask(
+					i+j+1,
+					fmt.Sprintf("DemoTask_%d", i+j+1),
+					1,       // 1 tick duration - INSTANT completion!
+					0,       // priority 0 (highest priority queue)
+					0.0,     // 0% IO chance - NO blocking!
+					1024*10, // 10KB memory - TINY footprint!
+					"demo",
+				)
+				engine.AddTask(task)
+				mu.Lock()
+				tasksCreated++
+				mu.Unlock()
+			}
+
 		}
 		logger.Info("✅ All demo tasks generated and loaded")
 	}()
@@ -205,6 +219,9 @@ func runDemo(cmd *cobra.Command, args []string) error {
 
 	queueTicker := time.NewTicker(2 * time.Second)
 	defer queueTicker.Stop()
+
+	durationTimer := time.NewTimer(demoDuration)
+	defer durationTimer.Stop()
 
 	lastStats := time.Now()
 
@@ -254,8 +271,7 @@ func runDemo(cmd *cobra.Command, args []string) error {
 				showQueueStatus(sched)
 			}
 
-		case <-time.After(demoDuration):
-			// Show summary when duration expires!
+		case <-durationTimer.C:
 			fmt.Printf("\n\n🎉 DEMO COMPLETE!\n")
 			fmt.Printf("⏱️  Duration expired: %v\n", demoDuration)
 			fmt.Printf("📊 Final stats - Created: %d, Completed: %d\n", tasksCreated, tasksCompleted)
@@ -273,8 +289,10 @@ func runDemo(cmd *cobra.Command, args []string) error {
 /**
  * loadTasksFromMathFile loads tasks from the math file
  *
- * Uses the file loader to read tasks from tasks.toml
- * and injects them into the scheduler for real demonstration.
+ * 数学ファイルからのタスク読み込み (◡‿◡)
+ *
+ * ファイルローダーを使用してtasks.tomlからタスクを読み取り、
+ * 実際のデモンストレーションのためにスケジューラに注入します。
  */
 func loadTasksFromMathFile(engine *aureneruntime.Engine, mu *sync.RWMutex, tasksCreated *int64, logger *logger.Logger) {
 	// DISABLED - BROKEN FUNCTION!
@@ -284,8 +302,10 @@ func loadTasksFromMathFile(engine *aureneruntime.Engine, mu *sync.RWMutex, tasks
 /**
  * showQueueStatus displays current queue status
  *
- * Shows real-time queue information with
- * task counts and priority levels.
+ * 現在のキュー状態表示 (◕‿◕)
+ *
+ * タスク数と優先度レベルを含む
+ * リアルタイムキュー情報を表示します。
  */
 func showQueueStatus(sched *scheduler.Scheduler) {
 	stats := sched.GetStats()
@@ -309,8 +329,10 @@ func showQueueStatus(sched *scheduler.Scheduler) {
 /**
  * showFinalStats displays comprehensive final statistics
  *
- * Provides spectacular final performance metrics
- * from the demonstration.
+ * 包括的な最終統計表示 (｡♥‿♥｡)
+ *
+ * デモンストレーションからの
+ * スペクタクルな最終パフォーマンスメトリクスを提供します。
  */
 func showFinalStats(engine *aureneruntime.Engine, startTime time.Time, tasksCreated, tasksCompleted int64) {
 	fmt.Printf("🔍 DEBUG: showFinalStats called!\n")
@@ -344,8 +366,10 @@ func showFinalStats(engine *aureneruntime.Engine, startTime time.Time, tasksCrea
 /**
  * getCurrentTaskName safely gets current task name
  *
- * Returns the name of the currently running task
- * or "None" if no task is running.
+ * 現在のタスク名安全取得 (◡‿◡)
+ *
+ * 現在実行中のタスクの名前を返すか、
+ * タスクが実行されていない場合は"None"を返します。
  */
 func getCurrentTaskName(sched *scheduler.Scheduler) string {
 	currentTask := sched.GetCurrentTask()

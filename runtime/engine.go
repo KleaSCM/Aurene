@@ -84,6 +84,15 @@ func (e *Engine) Start() error {
 
 	e.logger.Info("Starting Aurene runtime engine at %v tick rate", e.tickRate)
 
+	e.scheduler.SetCallbacks(
+		e.onSchedulerTick,
+		e.onTaskStart,
+		e.onTaskStop,
+		e.onTaskFinish,
+		e.onTaskBlock,
+		e.onTaskUnblock,
+	)
+
 	if err := e.startIPCServer(); err != nil {
 		e.logger.Error("Failed to start IPC server: %v", err)
 		return err
@@ -213,6 +222,7 @@ func (e *Engine) tickLoop() {
 }
 
 func (e *Engine) tick() {
+	e.totalTicks++
 	e.scheduler.Tick()
 
 	e.updateCPUUtilization()
@@ -222,13 +232,17 @@ func (e *Engine) tick() {
 	}
 }
 
+/**
+ * updateCPUUtilization calculates realistic CPU utilization
+ *
+ * リアルCPU使用率計算システム (｡•̀ᴗ-)✧
+ *
+ * 実際のCPU使用率をシミュレートするための
+ * 複雑な計算アルゴリズムを実装します。
+ * タスク実行時間、コンテキストスイッチ、
+ * キュー待機時間を考慮したリアルな使用率を提供します (๑˃̵ᴗ˂̵)و
+ */
 func (e *Engine) updateCPUUtilization() {
-	// リアルCPU使用率計算システム (｡•̀ᴗ-)✧
-	//
-	// 実際のCPU使用率をシミュレートするための
-	// 複雑な計算アルゴリズムを実装します。
-	// タスク実行時間、コンテキストスイッチ、
-	// キュー待機時間を考慮したリアルな使用率を提供します (๑˃̵ᴗ˂̵)و
 	if e.totalTicks > 0 {
 		schedulerStats := e.scheduler.GetStats()
 
@@ -307,7 +321,6 @@ func (e *Engine) onSchedulerTick(tick int64) {
 }
 
 func (e *Engine) onTaskStart(t *task.Task) {
-	e.logger.Info("Task started: %s", t.Name)
 	if e.onTaskEvent != nil {
 		e.onTaskEvent("start", t)
 	}
@@ -323,7 +336,6 @@ func (e *Engine) onTaskStop(t *task.Task) {
 }
 
 func (e *Engine) onTaskFinish(t *task.Task) {
-	e.logger.Info("Task finished: %s", t.Name)
 	if e.onTaskEvent != nil {
 		e.onTaskEvent("finish", t)
 	}

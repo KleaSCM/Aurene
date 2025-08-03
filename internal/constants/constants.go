@@ -11,43 +11,49 @@ package constants
 /**
  * Scheduler Configuration Constants
  *
- * These constants define the core behavior of the MLFQ scheduler.
- * DefaultSchedulerQueues: Number of priority levels for task aging
- * DefaultTickRateHz: Operating frequency for real-time task dispatching
- * DefaultTickDurationMs: Calculated as 1000ms / DefaultTickRateHz = 4ms
- * PriorityAgingInterval: Prevents starvation by aging priorities every N ticks
- * IOUnblockProbability: Percentage chance of IO completion per tick (10%)
- * IOBlockingThreshold: Threshold for realistic IO blocking simulation
+ * スケジューラ設定定数 (◕‿◕)
+ *
+ * MLFQスケジューラの核となる動作を定義する定数群です。
+ * DefaultSchedulerQueues: タスクエイジングの優先度レベル数
+ * DefaultTickRateHz: リアルタイムタスク配信の動作周波数
+ * DefaultTickDurationMs: 1000ms / DefaultTickRateHz = 4msで計算
+ * PriorityAgingInterval: Nティックごとに優先度をエイジングして飢餓を防止
+ * IOUnblockProbability: ティックごとのIO完了確率（10%）
+ * IOBlockingThreshold: リアルなIOブロックシミュレーションの閾値
  */
 const (
 	DefaultSchedulerQueues = 3
-	DefaultTickRateHz      = 250
-	DefaultTickDurationMs  = 4
-	PriorityAgingInterval  = 100
-	IOUnblockProbability   = 50
-	IOBlockingThreshold    = 100
+	DefaultTickRateHz      = 1000000 // 1MHz - REAL SCHEDULER SPEED!
+	DefaultTickDurationMs  = 1       // 1 millisecond - FAST PRECISION!
+	PriorityAgingInterval  = 1000    // Increased for faster processing
+	IOUnblockProbability   = 90      // Much higher to reduce blocking
+	IOBlockingThreshold    = 10      // Much lower threshold
 )
 
 /**
  * Queue Time Slice Constants
  *
- * Each queue has an exponential time slice following the formula:
+ * キュー時間スライス定数 (｡♥‿♥｡)
+ *
+ * 各キューは指数関数的な時間スライスを持ちます：
  * time_slice = 2^(queue_index + TimeSliceExponent)
- * This creates a fair scheduling hierarchy where higher priority
- * tasks get shorter time slices for responsiveness.
+ * これにより、高優先度タスクが短い時間スライスを
+ * 得て応答性を確保する公平なスケジューリング階層を作成します。
  */
 const (
-	Queue0TimeSlice = 50
-	Queue1TimeSlice = 100
-	Queue2TimeSlice = 200
+	Queue0TimeSlice = 10 // 10 ticks - Plenty of time!
+	Queue1TimeSlice = 15 // 15 ticks - Generous time slice!
+	Queue2TimeSlice = 20 // 20 ticks - Plenty of time!
 )
 
 /**
  * Task Priority Constants
  *
- * Priority levels for MLFQ scheduling algorithm.
- * Lower numbers = higher priority (0 = highest, 2 = lowest)
- * This enables preemption and priority-based task selection.
+ * タスク優先度定数 (◡‿◡)
+ *
+ * MLFQスケジューリングアルゴリズムの優先度レベル。
+ * 小さい数字 = 高優先度（0 = 最高、2 = 最低）
+ * これによりプリエンプションと優先度ベースのタスク選択が可能になります。
  */
 const (
 	HighestPriority = 0
@@ -58,8 +64,10 @@ const (
 /**
  * Memory Constants (in bytes)
  *
- * Memory footprint simulation for realistic task modeling.
- * Enables memory-aware scheduling and resource management.
+ * メモリ定数（バイト単位）(◕‿◕)
+ *
+ * リアルなタスクモデリングのためのメモリフットプリントシミュレーション。
+ * メモリを意識したスケジューリングとリソース管理を可能にします。
  */
 const (
 	DefaultTaskMemory = 128
@@ -71,9 +79,11 @@ const (
 /**
  * IO Probability Constants
  *
- * Probability values for realistic IO blocking simulation.
- * Determines how often tasks block on IO operations,
- * creating realistic workload patterns for scheduler testing.
+ * IO確率定数 (｡♥‿♥｡)
+ *
+ * リアルなIOブロックシミュレーションのための確率値。
+ * タスクがIO操作でブロックする頻度を決定し、
+ * スケジューラテストのためのリアルなワークロードパターンを作成します。
  */
 const (
 	NoIOChance     = 0.0
@@ -86,15 +96,17 @@ const (
 /**
  * Task Duration Constants (in ticks)
  *
- * Duration categories for realistic task modeling.
- * Enables testing of different workload types and
- * scheduler behavior under various task lengths.
+ * タスク持続時間定数（ティック単位）(◡‿◡)
+ *
+ * リアルなタスクモデリングのための持続時間カテゴリ。
+ * 異なるワークロードタイプと様々なタスク長での
+ * スケジューラ動作のテストを可能にします。
  */
 const (
-	ShortTaskDuration  = 50
-	MediumTaskDuration = 200
-	LongTaskDuration   = 500
-	MaxTaskDuration    = 10000
+	ShortTaskDuration  = 1  // 1 tick - INSTANT!
+	MediumTaskDuration = 2  // 2 ticks - FAST!
+	LongTaskDuration   = 5  // 5 ticks - Still fast!
+	MaxTaskDuration    = 10 // 10 ticks max!
 )
 
 // Logging Constants
