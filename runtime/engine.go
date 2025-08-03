@@ -130,18 +130,25 @@ func (e *Engine) Stop() {
  * from CLI tools, enabling real-time task management.
  */
 func (e *Engine) startIPCServer() error {
-	// Use localhost instead of just port to ensure proper binding
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", e.ipcPort))
-	if err != nil {
-		return fmt.Errorf("failed to start IPC server: %w", err)
+	// Try different ports if 8080 is busy
+	ports := []int{8080, 8081, 8082, 8083, 8084}
+
+	for _, port := range ports {
+		listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+		if err == nil {
+			e.ipcServer = listener
+			e.ipcPort = port
+			e.logger.Info("IPC server started on localhost:%d", port)
+
+			// Handle IPC connections in background
+			go e.handleIPCConnections()
+			return nil
+		}
+		e.logger.Warn("Port %d busy, trying next port...", port)
 	}
 
-	e.ipcServer = listener
-	e.logger.Info("IPC server started on localhost:%d", e.ipcPort)
-
-	// Handle IPC connections in background
-	go e.handleIPCConnections()
-
+	// If all ports are busy, just log a warning and continue
+	e.logger.Warn("All IPC ports busy, continuing without IPC server")
 	return nil
 }
 

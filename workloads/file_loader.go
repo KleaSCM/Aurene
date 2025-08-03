@@ -184,7 +184,7 @@ func (fl *FileLoader) loadJSON(filePath string) (*WorkloadFile, error) {
 /**
  * loadCSV loads workload from CSV file format
  *
- * ファイルローダーCSVシステム (◕‿◕)✨
+ * ファイルローダーCSVシステム (◕‿◕)
  *
  * CSVファイルからタスク定義を読み込み、
  * カンマ区切り形式のタスク仕様を解析します。
