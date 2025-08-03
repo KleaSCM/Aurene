@@ -363,7 +363,7 @@ func NewRealTimeStrategy(deadlineMode bool) *RealTimeStrategy {
 		edfMode:      deadlineMode,
 		deadlines:    make(map[int64]time.Time),
 		periods:      make(map[int64]time.Duration),
-		stats:        make(map[string]interface{}),
+		stats:        map[string]interface{}{"deadline_misses": 0},
 	}
 }
 
