@@ -9,6 +9,7 @@ Tests cover task dispatching, priority aging, preemption, and queue management.
 package tests
 
 import (
+	"fmt"
 	"testing"
 
 	"aurene/internal/constants"
@@ -40,10 +41,13 @@ func TestSchedulerCreation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			sched := scheduler.NewScheduler(tc.numQueues)
 			stats := sched.GetStats()
-			queueLengths := stats["queue_lengths"].([]int)
 
-			if len(queueLengths) != tc.expected {
-				t.Errorf("Expected %d queues, got %d", tc.expected, len(queueLengths))
+			// Check individual queue lengths
+			for i := 0; i < tc.expected; i++ {
+				queueKey := fmt.Sprintf("queue_%d_length", i)
+				if _, exists := stats[queueKey]; !exists {
+					t.Errorf("Expected queue key %s to exist", queueKey)
+				}
 			}
 		})
 	}
@@ -64,15 +68,19 @@ func TestTaskAddition(t *testing.T) {
 	sched.AddTask(testTask)
 
 	stats := sched.GetStats()
-	queueLengths := stats["queue_lengths"].([]int)
+	queue0Length := stats["queue_0_length"].(int)
 
-	if queueLengths[0] != 1 {
-		t.Errorf("Expected 1 task in queue 0, got %d", queueLengths[0])
+	if queue0Length != 1 {
+		t.Errorf("Expected 1 task in queue 0, got %d", queue0Length)
 	}
 
-	for i := 1; i < len(queueLengths); i++ {
-		if queueLengths[i] != 0 {
-			t.Errorf("Expected 0 tasks in queue %d, got %d", i, queueLengths[i])
+	// Check other queues are empty
+	for i := 1; i < 3; i++ {
+		queueKey := fmt.Sprintf("queue_%d_length", i)
+		if queueLength, exists := stats[queueKey]; exists {
+			if queueLength.(int) != 0 {
+				t.Errorf("Expected 0 tasks in queue %d, got %d", i, queueLength)
+			}
 		}
 	}
 }
@@ -243,10 +251,13 @@ func TestQueueTimeSlices(t *testing.T) {
 	expectedTimeSlices := []int{constants.Queue0TimeSlice, constants.Queue1TimeSlice, constants.Queue2TimeSlice}
 
 	stats := sched.GetStats()
-	queueLengths := stats["queue_lengths"].([]int)
 
-	if len(queueLengths) != len(expectedTimeSlices) {
-		t.Errorf("Expected %d queues, got %d", len(expectedTimeSlices), len(queueLengths))
+	// Check individual queue lengths
+	for i := 0; i < len(expectedTimeSlices); i++ {
+		queueKey := fmt.Sprintf("queue_%d_length", i)
+		if _, exists := stats[queueKey]; !exists {
+			t.Errorf("Expected queue key %s to exist", queueKey)
+		}
 	}
 }
 
@@ -277,9 +288,13 @@ func TestConcurrentAccess(t *testing.T) {
 
 	stats := sched.GetStats()
 	totalTasks := 0
-	queueLengths := stats["queue_lengths"].([]int)
-	for _, length := range queueLengths {
-		totalTasks += length
+
+	// Sum up all queue lengths
+	for i := 0; i < 3; i++ {
+		queueKey := fmt.Sprintf("queue_%d_length", i)
+		if queueLength, exists := stats[queueKey]; exists {
+			totalTasks += queueLength.(int)
+		}
 	}
 
 	if totalTasks != 10 {

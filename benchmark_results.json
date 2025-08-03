@@ -1,0 +1,101 @@
+{
+  "timestamp": "2025-08-03T13:05:30.49818388Z",
+  "total_duration": 5299742871,
+  "results": {
+    "concurrency": {
+      "scenario": "concurrency",
+      "duration": 1247621024,
+      "tasks_created": 1000,
+      "tasks_completed": 1000,
+      "tasks_failed": 0,
+      "average_latency": 0,
+      "max_latency": 0,
+      "throughput": 801.5254478430462,
+      "memory_usage": 0,
+      "passed": true,
+      "error": "",
+      "start_time": "2025-08-03T13:05:26.487629239Z",
+      "end_time": "2025-08-03T13:05:27.735250283Z"
+    },
+    "latency": {
+      "scenario": "latency",
+      "duration": 145091034,
+      "tasks_created": 250,
+      "tasks_completed": 250,
+      "tasks_failed": 0,
+      "average_latency": 482,
+      "max_latency": 6823,
+      "throughput": 1723.0561607273403,
+      "memory_usage": 0,
+      "passed": true,
+      "error": "",
+      "start_time": "2025-08-03T13:05:29.767513956Z",
+      "end_time": "2025-08-03T13:05:29.91260499Z"
+    },
+    "memory": {
+      "scenario": "memory",
+      "duration": 1159836854,
+      "tasks_created": 1000,
+      "tasks_completed": 1000,
+      "tasks_failed": 0,
+      "average_latency": 0,
+      "max_latency": 0,
+      "throughput": 862.1902266264769,
+      "memory_usage": 0.3135833740234375,
+      "passed": true,
+      "error": "",
+      "start_time": "2025-08-03T13:05:27.735266714Z",
+      "end_time": "2025-08-03T13:05:28.895103568Z"
+    },
+    "regression": {
+      "scenario": "regression",
+      "duration": 872407774,
+      "tasks_created": 500,
+      "tasks_completed": 500,
+      "tasks_failed": 0,
+      "average_latency": 0,
+      "max_latency": 0,
+      "throughput": 573.1264838545558,
+      "memory_usage": 0,
+      "passed": true,
+      "error": "",
+      "start_time": "2025-08-03T13:05:28.89510471Z",
+      "end_time": "2025-08-03T13:05:29.767512464Z"
+    },
+    "stress": {
+      "scenario": "stress",
+      "duration": 1289296244,
+      "tasks_created": 1000,
+      "tasks_completed": 1000,
+      "tasks_failed": 0,
+      "average_latency": 1289192,
+      "max_latency": 101660624,
+      "throughput": 775.6169341636584,
+      "memory_usage": 0,
+      "passed": false,
+      "error": "",
+      "start_time": "2025-08-03T13:05:25.198331281Z",
+      "end_time": "2025-08-03T13:05:26.487627505Z"
+    },
+    "throughput": {
+      "scenario": "throughput",
+      "duration": 585489941,
+      "tasks_created": 1000,
+      "tasks_completed": 1000,
+      "tasks_failed": 0,
+      "average_latency": 0,
+      "max_latency": 0,
+      "throughput": 1707.9712732417381,
+      "memory_usage": 0,
+      "passed": true,
+      "error": "",
+      "start_time": "2025-08-03T13:05:29.912606162Z",
+      "end_time": "2025-08-03T13:05:30.498096093Z"
+    }
+  },
+  "summary": {
+    "total_tests": 6,
+    "passed": 5,
+    "failed": 1
+  }
+}

@@ -204,7 +204,11 @@ func (s *Scheduler) Tick() {
 func (s *Scheduler) dispatchNextTask() {
 	// First, check for preemption by higher priority tasks
 	if s.currentTask != nil && s.currentTask.GetState() == task.Running {
-		for i := 0; i < s.currentTask.GetPriority(); i++ {
+		currentPriority := s.currentTask.GetPriority()
+		if currentPriority >= s.numQueues {
+			currentPriority = s.numQueues - 1
+		}
+		for i := 0; i < currentPriority; i++ {
 			if !s.queues[i].IsEmpty() {
 				// Higher priority task available - preempt current task
 				higherTask := s.queues[i].Pop()
