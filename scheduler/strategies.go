@@ -345,17 +345,24 @@ func (sjf *SJFStrategy) GetConfig() map[string]interface{} {
  * リアルタイムシステム向けのデッドラインベーススケジューリングをサポートします (◡‿◡)
  */
 type RealTimeStrategy struct {
-	mu           sync.RWMutex
-	readyQueue   []*task.Task
-	currentTask  *task.Task
-	deadlineMode bool
-	stats        map[string]interface{}
+	mu            sync.RWMutex
+	readyQueue    []*task.Task
+	currentTask   *task.Task
+	deadlineMode  bool
+	rateMonotonic bool
+	edfMode       bool
+	deadlines     map[int64]time.Time
+	periods       map[int64]time.Duration
+	stats         map[string]interface{}
 }
 
 func NewRealTimeStrategy(deadlineMode bool) *RealTimeStrategy {
 	return &RealTimeStrategy{
 		readyQueue:   make([]*task.Task, 0),
 		deadlineMode: deadlineMode,
+		edfMode:      deadlineMode,
+		deadlines:    make(map[int64]time.Time),
+		periods:      make(map[int64]time.Duration),
 		stats:        make(map[string]interface{}),
 	}
 }
@@ -367,8 +374,61 @@ func (rt *RealTimeStrategy) AddTask(t *task.Task) {
 	rt.readyQueue = append(rt.readyQueue, t)
 
 	if rt.deadlineMode {
+		deadline := time.Now().Add(time.Duration(t.GetRemaining()) * time.Millisecond)
+		rt.deadlines[t.ID] = deadline
+		rt.periods[t.ID] = time.Duration(t.GetRemaining()) * time.Millisecond
+	}
+
+	rt.sortQueue()
+}
+
+/**
+ * sortQueue implements EDF and Rate Monotonic scheduling algorithms
+ *
+ * リアルタイムスケジューリングアルゴリズム (◕‿◕)✨
+ *
+ * EDF (Earliest Deadline First) と Rate Monotonic スケジューリングを実装し、
+ * デッドラインに基づく優先度計算と周期タスクの処理を行います。
+ * リアルタイムシステムの厳密な時間制約を満たすための
+ * 高度なスケジューリングアルゴリズムを提供します (｡•̀ᴗ-)✧
+ */
+func (rt *RealTimeStrategy) sortQueue() {
+	if rt.edfMode {
 		sort.Slice(rt.readyQueue, func(i, j int) bool {
-			// In a real implementation, tasks would have deadline fields
+			deadlineI, existsI := rt.deadlines[rt.readyQueue[i].ID]
+			deadlineJ, existsJ := rt.deadlines[rt.readyQueue[j].ID]
+
+			if !existsI && !existsJ {
+				return rt.readyQueue[i].GetPriority() < rt.readyQueue[j].GetPriority()
+			}
+			if !existsI {
+				return false
+			}
+			if !existsJ {
+				return true
+			}
+
+			return deadlineI.Before(deadlineJ)
+		})
+	} else if rt.rateMonotonic {
+		sort.Slice(rt.readyQueue, func(i, j int) bool {
+			periodI, existsI := rt.periods[rt.readyQueue[i].ID]
+			periodJ, existsJ := rt.periods[rt.readyQueue[j].ID]
+
+			if !existsI && !existsJ {
+				return rt.readyQueue[i].GetPriority() < rt.readyQueue[j].GetPriority()
+			}
+			if !existsI {
+				return false
+			}
+			if !existsJ {
+				return true
+			}
+
+			return periodI < periodJ
+		})
+	} else {
+		sort.Slice(rt.readyQueue, func(i, j int) bool {
 			return rt.readyQueue[i].GetPriority() < rt.readyQueue[j].GetPriority()
 		})
 	}
@@ -379,8 +439,10 @@ func (rt *RealTimeStrategy) GetNextTask() *task.Task {
 	defer rt.mu.Unlock()
 
 	if rt.currentTask != nil && rt.deadlineMode {
-		// In a real implementation, check if deadline has passed
-		// For now, we'll just use priority-based selection
+		if rt.isDeadlineMissed(rt.currentTask) {
+			rt.handleDeadlineMiss(rt.currentTask)
+			rt.currentTask = nil
+		}
 	}
 
 	if len(rt.readyQueue) > 0 {
@@ -393,6 +455,17 @@ func (rt *RealTimeStrategy) GetNextTask() *task.Task {
 	return rt.currentTask
 }
 
+func (rt *RealTimeStrategy) isDeadlineMissed(t *task.Task) bool {
+	if deadline, exists := rt.deadlines[t.ID]; exists {
+		return time.Now().After(deadline)
+	}
+	return false
+}
+
+func (rt *RealTimeStrategy) handleDeadlineMiss(t *task.Task) {
+	rt.stats["deadline_misses"] = rt.stats["deadline_misses"].(int) + 1
+}
+
 func (rt *RealTimeStrategy) Tick() {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
@@ -400,6 +473,10 @@ func (rt *RealTimeStrategy) Tick() {
 	if rt.currentTask != nil && rt.currentTask.GetState() == task.Running {
 		finished := rt.currentTask.Execute()
 		if finished {
+			if rt.deadlineMode {
+				delete(rt.deadlines, rt.currentTask.ID)
+				delete(rt.periods, rt.currentTask.ID)
+			}
 			rt.currentTask = nil
 		}
 	}
@@ -414,6 +491,15 @@ func (rt *RealTimeStrategy) GetStats() map[string]interface{} {
 	stats["ready_queue_length"] = len(rt.readyQueue)
 	stats["current_task"] = rt.currentTask
 	stats["deadline_mode"] = rt.deadlineMode
+	stats["edf_mode"] = rt.edfMode
+	stats["rate_monotonic"] = rt.rateMonotonic
+
+	if deadlineMisses, exists := rt.stats["deadline_misses"]; exists {
+		stats["deadline_misses"] = deadlineMisses
+	} else {
+		stats["deadline_misses"] = 0
+	}
+
 	totalTasks := len(rt.readyQueue)
 	if rt.currentTask != nil {
 		totalTasks++
@@ -434,13 +520,22 @@ func (rt *RealTimeStrategy) GetDescription() string {
 func (rt *RealTimeStrategy) SetConfig(config map[string]interface{}) error {
 	if deadlineMode, ok := config["deadline_mode"].(bool); ok {
 		rt.deadlineMode = deadlineMode
+		rt.edfMode = deadlineMode
+	}
+	if edfMode, ok := config["edf_mode"].(bool); ok {
+		rt.edfMode = edfMode
+	}
+	if rateMonotonic, ok := config["rate_monotonic"].(bool); ok {
+		rt.rateMonotonic = rateMonotonic
 	}
 	return nil
 }
 
 func (rt *RealTimeStrategy) GetConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"deadline_mode": rt.deadlineMode,
+		"deadline_mode":  rt.deadlineMode,
+		"edf_mode":       rt.edfMode,
+		"rate_monotonic": rt.rateMonotonic,
 	}
 }
 
