@@ -36,6 +36,7 @@ var (
 	demoShowProgress bool
 	demoShowStats    bool
 	demoShowQueues   bool
+	demoUseMathFile  bool
 )
 
 /**
@@ -59,7 +60,8 @@ Features:
 
 Example:
   aurene demo --tasks 1000000 --duration 5m
-  aurene demo --tasks 10000000 --batch 10000 --complexity 80`,
+  aurene demo --tasks 10000000 --batch 10000 --complexity 80
+  aurene demo --math-file --tasks 100000`,
 	RunE: runDemo,
 }
 
@@ -75,6 +77,7 @@ func init() {
 	demoCmd.Flags().BoolVar(&demoShowProgress, "progress", true, "Show real-time progress")
 	demoCmd.Flags().BoolVar(&demoShowStats, "stats", true, "Show live statistics")
 	demoCmd.Flags().BoolVar(&demoShowQueues, "queues", true, "Show queue status")
+	demoCmd.Flags().BoolVar(&demoUseMathFile, "math-file", false, "Use tasks from math file instead of generating")
 }
 
 /**
@@ -86,8 +89,15 @@ func init() {
  */
 func runDemo(cmd *cobra.Command, args []string) error {
 	logger := logger.New()
-	logger.Info("🚀 Starting SPECTACULAR Aurene Demo!")
-	logger.Info("📊 Generating %d math problems as 'apps'", demoTotalTasks)
+	logger.Info("🚀 Starting Aurene Demo!")
+
+	if demoUseMathFile {
+		logger.Info("📁 Loading tasks from: tasks_demo.toml")
+		logger.Info("📊 Total tasks to process: %d", demoTotalTasks)
+	} else {
+		logger.Info("📊 Generating %d math problems as 'apps'", demoTotalTasks)
+	}
+
 	logger.Info("⏱️  Demo duration: %v", demoDuration)
 	logger.Info("🎯 Complexity: %d/100", demoComplexity)
 
@@ -108,16 +118,16 @@ func runDemo(cmd *cobra.Command, args []string) error {
 
 	engine.SetCallbacks(
 		func(tick int64) {
-			if tick%100 == 0 && demoShowStats {
-				mu.RLock()
-				elapsed := time.Since(startTime)
-				throughput := float64(tasksCompleted) / elapsed.Seconds()
-				progress := float64(tasksCreated) / float64(demoTotalTasks) * 100
+			mu.RLock()
+			elapsed := time.Since(startTime)
+			throughput := float64(tasksCompleted) / elapsed.Seconds()
+			progress := float64(tasksCreated) / float64(demoTotalTasks) * 100
+			completionProgress := float64(tasksCompleted) / float64(demoTotalTasks) * 100
 
-				fmt.Printf("\r📊 Progress: %.1f%% | Tasks: %d/%d | Completed: %d | Running: %d | Blocked: %d | Throughput: %.1f tasks/sec",
-					progress, tasksCreated, demoTotalTasks, tasksCompleted, tasksRunning, tasksBlocked, throughput)
-				mu.RUnlock()
-			}
+			fmt.Printf("\r🌌 AURENE DEMO - 📊 Progress: %.1f%% | 🎯 Created: %d/%d | ✅ Completed: %d (%.1f%%) | 🔄 Running: %d | ⏸️  Blocked: %d | 🚀 Throughput: %.1f tasks/sec",
+				progress, tasksCreated, demoTotalTasks, tasksCompleted, completionProgress,
+				tasksRunning, tasksBlocked, throughput)
+			mu.RUnlock()
 		},
 		func(event string, t *task.Task) {
 			mu.Lock()
@@ -142,84 +152,47 @@ func runDemo(cmd *cobra.Command, args []string) error {
 
 	logger.Info("🎮 Engine starting...")
 
-	config := workloads.MathWorkloadConfig{
-		TotalTasks:      demoTotalTasks,
-		BatchSize:       demoBatchSize,
-		TaskTypes:       []workloads.MathTaskType{workloads.Addition, workloads.Multiplication, workloads.Division, workloads.SquareRoot, workloads.Power, workloads.Factorial, workloads.PrimeCheck, workloads.MatrixMultiply, workloads.Integration, workloads.Differentiation},
-		ComplexityRange: [2]int{demoComplexity, demoComplexity + 10},
-		PriorityRange:   [2]int{demoPriority, demoPriority + 2},
-		MemoryRange:     [2]int64{demoMemory, demoMemory * 2},
-		IOChanceRange:   [2]float64{0.1, 0.3},
+	if err := engine.Start(); err != nil {
+		logger.Error("Failed to start engine: %v", err)
+		return err
 	}
 
-	generator := workloads.NewMathWorkloadGenerator(config)
+	if demoUseMathFile {
+		loadTasksFromMathFile(engine, &mu, &tasksCreated, logger)
+	} else {
+		generateMathTasks(engine, &mu, &tasksCreated, logger)
+	}
 
-	taskChan := make(chan *task.Task, demoBatchSize)
+	progressTicker := time.NewTicker(100 * time.Millisecond)
+	defer progressTicker.Stop()
 
-	go func() {
-		defer close(taskChan)
-
-		batches := int(demoTotalTasks) / demoBatchSize
-		for i := 0; i < batches; i++ {
-			tasks := generator.GenerateTasks()
-
-			for _, t := range tasks {
-				select {
-				case taskChan <- t:
-					mu.Lock()
-					tasksCreated++
-					mu.Unlock()
-				case <-time.After(100 * time.Millisecond):
-				}
-			}
-
-			if demoShowProgress && i%10 == 0 {
-				mu.RLock()
-				progress := float64(tasksCreated) / float64(demoTotalTasks) * 100
-				fmt.Printf("\r🎯 Generated: %.1f%% (%d/%d tasks)", progress, tasksCreated, demoTotalTasks)
-				mu.RUnlock()
-			}
-		}
-	}()
-
-	go func() {
-		for t := range taskChan {
-			engine.AddTask(t)
-			time.Sleep(time.Microsecond)
-		}
-	}()
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
+	queueTicker := time.NewTicker(2 * time.Second)
+	defer queueTicker.Stop()
 
 	lastStats := time.Now()
 
 	for {
 		select {
-		case <-ticker.C:
-			if demoShowStats {
-				mu.RLock()
-				elapsed := time.Since(startTime)
-				throughput := float64(tasksCompleted) / elapsed.Seconds()
-				progress := float64(tasksCreated) / float64(demoTotalTasks) * 100
-				completionProgress := float64(tasksCompleted) / float64(demoTotalTasks) * 100
+		case <-progressTicker.C:
+			mu.RLock()
+			elapsed := time.Since(startTime)
+			throughput := float64(tasksCompleted) / elapsed.Seconds()
+			progress := float64(tasksCreated) / float64(demoTotalTasks) * 100
+			completionProgress := float64(tasksCompleted) / float64(demoTotalTasks) * 100
 
-				fmt.Printf("\r")
-				fmt.Printf("🌌 AURENE DEMO - ")
-				fmt.Printf("📊 Progress: %.1f%% | ")
-				fmt.Printf("🎯 Created: %d/%d | ")
-				fmt.Printf("✅ Completed: %d (%.1f%%) | ")
-				fmt.Printf("🔄 Running: %d | ")
-				fmt.Printf("⏸️  Blocked: %d | ")
-				fmt.Printf("🚀 Throughput: %.1f tasks/sec",
-					progress, tasksCreated, demoTotalTasks, tasksCompleted, completionProgress,
-					tasksRunning, tasksBlocked, throughput)
-				mu.RUnlock()
-			}
+			fmt.Printf("\r🌌 AURENE DEMO - 📊 Progress: %.1f%% | 🎯 Created: %d/%d | ✅ Completed: %d (%.1f%%) | 🔄 Running: %d | ⏸️  Blocked: %d | 🚀 Throughput: %.1f tasks/sec",
+				progress, tasksCreated, demoTotalTasks, tasksCompleted, completionProgress,
+				tasksRunning, tasksBlocked, throughput)
+			mu.RUnlock()
 
-			if demoShowQueues && time.Since(lastStats) > 2*time.Second {
+			if time.Since(lastStats) > 5*time.Second {
 				showQueueStatus(sched)
 				lastStats = time.Now()
+			}
+
+		case <-queueTicker.C:
+			if demoShowQueues {
+				showQueueStatus(sched)
 			}
 
 		case <-time.After(demoDuration):
@@ -236,10 +209,84 @@ func runDemo(cmd *cobra.Command, args []string) error {
 }
 
 /**
+ * loadTasksFromMathFile loads tasks from the math file
+ *
+ * Uses the file loader to read tasks from tasks.toml
+ * and injects them into the scheduler for real demonstration.
+ */
+func loadTasksFromMathFile(engine *runtime.Engine, mu *sync.RWMutex, tasksCreated *int64, logger *logger.Logger) {
+	fileLoader := workloads.NewFileLoader()
+
+	go func() {
+		workload, err := fileLoader.LoadWorkloadFromFile("tasks_demo.toml")
+		if err != nil {
+			logger.Error("Failed to load math file: %v", err)
+			return
+		}
+
+		tasks, err := fileLoader.ConvertToTasks(workload)
+		if err != nil {
+			logger.Error("Failed to convert tasks: %v", err)
+			return
+		}
+
+		logger.Info("📁 Loaded %d tasks from math file", len(tasks))
+
+		for i, t := range tasks {
+			if i >= int(demoTotalTasks) {
+				break
+			}
+
+			engine.AddTask(t)
+			mu.Lock()
+			*tasksCreated++
+			mu.Unlock()
+
+			time.Sleep(time.Millisecond)
+		}
+
+		logger.Info("✅ All tasks from math file loaded into scheduler")
+	}()
+}
+
+/**
+ * generateMathTasks generates synthetic math tasks
+ *
+ * Creates realistic math computation tasks for demonstration
+ * with configurable complexity and performance characteristics.
+ */
+func generateMathTasks(engine *runtime.Engine, mu *sync.RWMutex, tasksCreated *int64, logger *logger.Logger) {
+	generator := workloads.NewMathWorkloadGenerator(workloads.MathWorkloadConfig{
+		TotalTasks:      demoTotalTasks,
+		ComplexityRange: [2]int{demoComplexity, demoComplexity + 10},
+		PriorityRange:   [2]int{demoPriority, demoPriority + 2},
+		MemoryRange:     [2]int64{demoMemory, demoMemory * 2},
+		IOChanceRange:   [2]float64{0.1, 0.3},
+		BatchSize:       demoBatchSize,
+	})
+
+	go func() {
+		taskChan := make(chan *task.Task, demoBatchSize)
+		generator.GenerateStreamingTasks(taskChan)
+
+		for t := range taskChan {
+			engine.AddTask(t)
+			mu.Lock()
+			*tasksCreated++
+			mu.Unlock()
+
+			time.Sleep(time.Millisecond)
+		}
+
+		logger.Info("✅ All math tasks generated and loaded")
+	}()
+}
+
+/**
  * showQueueStatus displays current queue status
  *
- * Shows beautiful real-time queue information with
- * task counts and priority levels for demonstration.
+ * Shows real-time queue information with
+ * task counts and priority levels.
  */
 func showQueueStatus(sched *scheduler.Scheduler) {
 	stats := sched.GetStats()
@@ -251,14 +298,20 @@ func showQueueStatus(sched *scheduler.Scheduler) {
 			fmt.Printf("  Queue %d (Priority %d): %d tasks\n", i, i, length)
 		}
 	}
-	fmt.Printf("  Current Task: %s\n", getCurrentTaskName(sched))
+
+	currentTask := sched.GetCurrentTask()
+	if currentTask != nil {
+		fmt.Printf("  Current Task: %s\n", currentTask.Name)
+	} else {
+		fmt.Printf("  Current Task: None\n")
+	}
 }
 
 /**
  * showFinalStats displays comprehensive final statistics
  *
  * Provides spectacular final performance metrics
- * and demonstration results.
+ * from the demonstration.
  */
 func showFinalStats(engine *runtime.Engine, startTime time.Time, tasksCreated, tasksCompleted int64) {
 	elapsed := time.Since(startTime)
@@ -267,7 +320,7 @@ func showFinalStats(engine *runtime.Engine, startTime time.Time, tasksCreated, t
 
 	engineStats := engine.GetStats()
 
-	fmt.Printf("\n🎊 FINAL DEMO STATISTICS:\n")
+	fmt.Printf("\n🎊 DEMO STATISTICS SUMMARY:\n")
 	fmt.Printf("  ⏱️  Total Duration: %v\n", elapsed)
 	fmt.Printf("  🎯 Tasks Created: %d\n", tasksCreated)
 	fmt.Printf("  ✅ Tasks Completed: %d (%.1f%%)\n", tasksCompleted, completionRate)
@@ -277,15 +330,16 @@ func showFinalStats(engine *runtime.Engine, startTime time.Time, tasksCreated, t
 	fmt.Printf("  📊 CPU Utilization: %.2f%%\n", engineStats["cpu_utilization"])
 	fmt.Printf("  🏆 Peak Performance: %.1f tasks/sec\n", throughput)
 
-	fmt.Printf("\n🌟 AURENE SCHEDULER DEMONSTRATION COMPLETE!\n")
-	fmt.Printf("   The scheduler successfully handled %d math problems\n", tasksCompleted)
-	fmt.Printf("   as realistic applications with real-time scheduling!\n")
+	fmt.Printf("\n🌟 AURENE DEMONSTRATION COMPLETE!\n")
+	fmt.Printf("   The scheduler successfully handled %d tasks\n", tasksCompleted)
+	fmt.Printf("   with spectacular real-time performance!\n")
 }
 
 /**
- * getCurrentTaskName gets the name of the current running task
+ * getCurrentTaskName safely gets current task name
  *
- * Retrieves the current task name for display purposes.
+ * Returns the name of the currently running task
+ * or "None" if no task is running.
  */
 func getCurrentTaskName(sched *scheduler.Scheduler) string {
 	currentTask := sched.GetCurrentTask()

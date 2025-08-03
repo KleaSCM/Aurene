@@ -1,0 +1,119 @@
+# Aurene Scheduler Demo Task Definitions
+# Low IO chance for demonstration purposes
+
+[metadata]
+name = "Demo Math Workload"
+description = "Low IO chance tasks for Aurene demo"
+created_at = "2025-08-03T08:00:00Z"
+version = "1.0"
+author = "Aurene Scheduler"
+
+[[tasks]]
+id = 1
+name = "Matrix Multiplication 1000x1000"
+duration = 50
+priority = 0
+io_chance = 0.01
+memory = 104857600
+group = "math"
+type = "matrix"
+complexity = 80
+
+[[tasks]]
+id = 2
+name = "Prime Number Sieve"
+duration = 20
+priority = 1
+io_chance = 0.005
+memory = 10485760
+group = "math"
+type = "prime"
+complexity = 60
+
+[[tasks]]
+id = 3
+name = "Numerical Integration"
+duration = 80
+priority = 0
+io_chance = 0.02
+memory = 209715200
+group = "math"
+type = "integration"
+complexity = 90
+
+[[tasks]]
+id = 4
+name = "Fast Fourier Transform"
+duration = 30
+priority = 2
+io_chance = 0.015
+memory = 52428800
+group = "math"
+type = "fft"
+complexity = 70
+
+[[tasks]]
+id = 5
+name = "Linear Algebra Solver"
+duration = 40
+priority = 1
+io_chance = 0.01
+memory = 78643200
+group = "math"
+type = "linear"
+complexity = 75
+
+[[tasks]]
+id = 6
+name = "Monte Carlo Simulation"
+duration = 60
+priority = 3
+io_chance = 0.025
+memory = 157286400
+group = "math"
+type = "monte_carlo"
+complexity = 85
+
+[[tasks]]
+id = 7
+name = "Differential Equation Solver"
+duration = 100
+priority = 0
+io_chance = 0.03
+memory = 262144000
+group = "math"
+type = "differential"
+complexity = 95
+
+[[tasks]]
+id = 8
+name = "Optimization Algorithm"
+duration = 35
+priority = 2
+io_chance = 0.012
+memory = 62914560
+group = "math"
+type = "optimization"
+complexity = 65
+
+[[tasks]]
+id = 9
+name = "Statistical Analysis"
+duration = 25
+priority = 1
+io_chance = 0.008
+memory = 41943040
+group = "math"
+type = "statistics"
+complexity = 55
+
+[[tasks]]
+id = 10
+name = "Cryptographic Hash"
+duration = 15
+priority = 3
+io_chance = 0.002
+memory = 20971520
+group = "math"
+type = "crypto"
+complexity = 45 

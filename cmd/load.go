@@ -69,10 +69,8 @@ func runLoad(cmd *cobra.Command, args []string) error {
 	logger := logger.New()
 	logger.Info("Loading tasks from file: %s", loadFile)
 
-	// Create file loader
 	loader := workloads.NewFileLoader()
 
-	// Load workload from file
 	workload, err := loader.LoadWorkloadFromFile(loadFile)
 	if err != nil {
 		return fmt.Errorf("failed to load workload: %w", err)
@@ -80,7 +78,6 @@ func runLoad(cmd *cobra.Command, args []string) error {
 
 	logger.Info("Loaded workload: %s (%d tasks)", workload.Metadata.Name, len(workload.Tasks))
 
-	// Convert to scheduler tasks
 	tasks, err := loader.ConvertToTasks(workload)
 	if err != nil {
 		return fmt.Errorf("failed to convert tasks: %w", err)
@@ -88,11 +85,9 @@ func runLoad(cmd *cobra.Command, args []string) error {
 
 	logger.Info("Converted %d tasks for scheduler", len(tasks))
 
-	// Create scheduler and engine
 	sched := scheduler.NewScheduler(5)
 	engine := runtime.NewEngine(sched, time.Duration(4)*time.Millisecond)
 
-	// Set up callbacks for monitoring
 	engine.SetCallbacks(
 		func(tick int64) {
 			if tick%1000 == 0 {
@@ -104,7 +99,6 @@ func runLoad(cmd *cobra.Command, args []string) error {
 		},
 	)
 
-	// Add tasks to scheduler
 	logger.Info("Adding %d tasks to scheduler...", len(tasks))
 
 	startTime := time.Now()
@@ -122,7 +116,6 @@ func runLoad(cmd *cobra.Command, args []string) error {
 	elapsed := time.Since(startTime)
 	logger.Info("Added %d tasks in %v (%.1f tasks/sec)", tasksAdded, elapsed, float64(tasksAdded)/elapsed.Seconds())
 
-	// Start engine if real-time mode
 	if loadRealTime {
 		logger.Info("Starting engine in real-time mode...")
 
@@ -130,11 +123,9 @@ func runLoad(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to start engine: %w", err)
 		}
 
-		// Run for a reasonable time
 		time.Sleep(30 * time.Second)
 		engine.Stop()
 
-		// Print final statistics
 		stats := engine.GetStats()
 		logger.Info("Final statistics:")
 		logger.Info("  Total ticks: %v", stats["total_ticks"])

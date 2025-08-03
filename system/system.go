@@ -29,21 +29,17 @@ import (
 type SystemMonitor struct {
 	mu sync.RWMutex
 
-	// Configuration
 	procPath string
 	sysPath  string
 	enabled  bool
 
-	// Cached statistics
 	lastCPUStats     *CPUStats
 	lastMemoryStats  *MemoryStats
 	lastProcessStats *ProcessStats
 
-	// Update intervals
 	updateInterval time.Duration
 	lastUpdate     time.Time
 
-	// Statistics
 	stats SystemStats
 }
 
@@ -56,7 +52,6 @@ type SystemMonitor struct {
 type CPUStats struct {
 	Timestamp time.Time `json:"timestamp"`
 
-	// CPU times (from /proc/stat)
 	User      uint64 `json:"user"`
 	Nice      uint64 `json:"nice"`
 	System    uint64 `json:"system"`
@@ -68,12 +63,10 @@ type CPUStats struct {
 	Guest     uint64 `json:"guest"`
 	GuestNice uint64 `json:"guest_nice"`
 
-	// Calculated metrics
 	TotalTime   uint64  `json:"total_time"`
 	IdleTime    uint64  `json:"idle_time"`
 	Utilization float64 `json:"utilization"`
 
-	// Load average (from /proc/loadavg)
 	Load1Min  float64 `json:"load_1min"`
 	Load5Min  float64 `json:"load_5min"`
 	Load15Min float64 `json:"load_15min"`

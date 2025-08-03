@@ -24,27 +24,22 @@ import (
 type MemoryManager struct {
 	mu sync.RWMutex
 
-	// Memory limits
 	totalMemory      int64
 	availableMemory  int64
 	maxMemoryPerTask int64
 
-	// Memory allocation tracking
 	allocatedMemory int64
-	taskMemory      map[int64]int64 // taskID -> memory usage
+	taskMemory      map[int64]int64
 
-	// Swapping simulation
 	swapEnabled   bool
 	swapThreshold int
-	swapFile      map[int64]int64 // taskID -> swapped memory
+	swapFile      map[int64]int64
 	swapUsage     int64
 
-	// Memory pressure
 	pressureEnabled   bool
 	pressureThreshold int
 	pressureLevel     int
 
-	// Statistics
 	stats MemoryStats
 }
 
@@ -143,7 +138,6 @@ func (mm *MemoryManager) AllocateMemory(req *MemoryRequest) *MemoryResponse {
 	}
 
 	if mm.availableMemory >= req.Size {
-		// Direct allocation
 		mm.availableMemory -= req.Size
 		mm.allocatedMemory += req.Size
 		mm.taskMemory[req.TaskID] = req.Size
@@ -205,7 +199,6 @@ func (mm *MemoryManager) DeallocateMemory(taskID int64) *MemoryResponse {
 		}
 	}
 
-	// Free memory
 	mm.availableMemory += memory
 	mm.allocatedMemory -= memory
 	delete(mm.taskMemory, taskID)
@@ -315,7 +308,6 @@ func (mm *MemoryManager) trySwapping(requiredSize int64) bool {
  * when sufficient memory becomes available.
  */
 func (mm *MemoryManager) tryUnswapping() {
-	// Simple unswapping: bring back one task at a time
 	for taskID, memory := range mm.swapFile {
 		if mm.availableMemory >= memory {
 			mm.swapFile[taskID] = memory
