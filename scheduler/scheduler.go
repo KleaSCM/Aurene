@@ -177,7 +177,7 @@ func (s *Scheduler) Tick() {
 
 	if s.currentTask != nil && s.currentTask.GetState() == task.Running {
 		finished := s.currentTask.Execute()
-		if finished {
+		if finished || s.currentTask.IsFinished() {
 			s.handleTaskFinish(s.currentTask)
 			s.currentTask = nil
 		} else if s.currentTask.GetState() == task.Blocked {
@@ -243,6 +243,14 @@ func (s *Scheduler) dispatchNextTask() {
 
 		// If time slice exhausted, demote task to lower priority queue
 		if s.currentTimeSlice >= s.timeSlice[queueIndex] {
+			// Check if task completed during this time slice
+			if s.currentTask.IsFinished() {
+				s.handleTaskFinish(s.currentTask)
+				s.currentTask = nil
+				s.currentTimeSlice = 0
+				return
+			}
+
 			s.currentTask.Stop()
 			newPriority := queueIndex + 1
 			if newPriority >= s.numQueues {

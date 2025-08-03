@@ -24,7 +24,7 @@ const (
 	DefaultTickRateHz      = 250
 	DefaultTickDurationMs  = 4
 	PriorityAgingInterval  = 100
-	IOUnblockProbability   = 10
+	IOUnblockProbability   = 50
 	IOBlockingThreshold    = 100
 )
 
@@ -37,9 +37,9 @@ const (
  * tasks get shorter time slices for responsiveness.
  */
 const (
-	Queue0TimeSlice = 8
-	Queue1TimeSlice = 16
-	Queue2TimeSlice = 32
+	Queue0TimeSlice = 50
+	Queue1TimeSlice = 100
+	Queue2TimeSlice = 200
 )
 
 /**

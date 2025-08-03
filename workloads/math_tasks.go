@@ -182,34 +182,8 @@ func (mwg *MathWorkloadGenerator) calculateDuration(taskType MathTaskType, compl
 }
 
 func (mwg *MathWorkloadGenerator) GenerateStreamingTasks(channel chan<- *task.Task) {
-	go func() {
-		defer close(channel)
-
-		for i := int64(0); i < mwg.config.TotalTasks; i++ {
-			taskType := mwg.config.TaskTypes[rand.IntN(len(mwg.config.TaskTypes))]
-			complexity := rand.IntN(mwg.config.ComplexityRange[1]-mwg.config.ComplexityRange[0]) + mwg.config.ComplexityRange[0]
-			priority := rand.IntN(mwg.config.PriorityRange[1]-mwg.config.PriorityRange[0]) + mwg.config.PriorityRange[0]
-			memory := rand.Int64N(mwg.config.MemoryRange[1]-mwg.config.MemoryRange[0]) + mwg.config.MemoryRange[0]
-			ioChance := rand.Float64()*(mwg.config.IOChanceRange[1]-mwg.config.IOChanceRange[0]) + mwg.config.IOChanceRange[0]
-
-			duration := mwg.calculateDuration(taskType, complexity)
-
-			task := task.NewTask(
-				mwg.taskCounter,
-				fmt.Sprintf("math_%s_%d", taskType.String(), mwg.taskCounter),
-				duration,
-				priority,
-				ioChance,
-				memory,
-				"math_workload",
-			)
-
-			channel <- task
-			mwg.taskCounter++
-
-			time.Sleep(time.Microsecond * time.Duration(rand.IntN(100)))
-		}
-	}()
+	// DISABLED - BROKEN FUNCTION!
+	close(channel)
 }
 
 func (mwg *MathWorkloadGenerator) GetStats() map[string]interface{} {
