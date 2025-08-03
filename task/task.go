@@ -17,7 +17,6 @@ import (
 	"time"
 )
 
-// TaskState represents the current state of a task
 type TaskState int
 
 const (
@@ -27,7 +26,6 @@ const (
 	Finished
 )
 
-// String returns the string representation of TaskState
 func (s TaskState) String() string {
 	switch s {
 	case Ready:
@@ -43,32 +41,28 @@ func (s TaskState) String() string {
 	}
 }
 
-// Task represents a real process in the scheduler
 type Task struct {
 	ID          int64
 	Name        string
-	Duration    int64      // Total CPU time needed (in ticks)
-	Remaining   int64      // Remaining CPU time (atomic)
-	State       TaskState  // Current state
-	Priority    int        // MLFQ priority level (0 = highest)
-	IOChance    float64    // Probability of IO blocking per tick
-	Memory      int64      // Memory footprint in bytes
-	Group       string     // Task grouping for stats
-	ArrivalTime time.Time  // When task was created
-	StartTime   *time.Time // When task first started running
-	EndTime     *time.Time // When task finished
+	Duration    int64
+	Remaining   int64
+	State       TaskState
+	Priority    int
+	IOChance    float64
+	Memory      int64
+	Group       string
+	ArrivalTime time.Time
+	StartTime   *time.Time
+	EndTime     *time.Time
 
-	// Statistics
-	WaitTime       int64 // Total time spent waiting
-	TurnaroundTime int64 // Total time from arrival to completion
+	WaitTime       int64
+	TurnaroundTime int64
 
-	// Internal state
 	mu          sync.RWMutex
 	blockedAt   *time.Time
 	lastRunTime *time.Time
 }
 
-// NewTask creates a new task with the given parameters
 func NewTask(id int64, name string, duration int64, priority int, ioChance float64, memory int64, group string) *Task {
 	now := time.Now()
 	return &Task{
@@ -85,7 +79,16 @@ func NewTask(id int64, name string, duration int64, priority int, ioChance float
 	}
 }
 
-// Execute runs the task for one tick
+/**
+ * Execute runs the task for one tick
+ *
+ * タスク実行システム (｡•̀ᴗ-)✧
+ *
+ * 1ティック分のタスク実行を行い、
+ * 残り時間を減算して完了判定を行います。
+ * IOブロッキングの確率も計算して、
+ * リアルなプロセス動作をシミュレートします (๑˃̵ᴗ˂̵)و
+ */
 func (t *Task) Execute() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -94,14 +97,11 @@ func (t *Task) Execute() bool {
 		return false
 	}
 
-	// Decrement remaining time
 	remaining := atomic.AddInt64(&t.Remaining, -1)
 
-	// Update last run time
 	now := time.Now()
 	t.lastRunTime = &now
 
-	// Check if task is finished
 	if remaining <= 0 {
 		t.State = Finished
 		t.EndTime = &now
@@ -109,7 +109,6 @@ func (t *Task) Execute() bool {
 		return true
 	}
 
-	// Simulate IO blocking
 	if t.shouldBlock() {
 		t.State = Blocked
 		t.blockedAt = &now
@@ -122,20 +121,20 @@ func (t *Task) Execute() bool {
 /**
  * shouldBlock determines if the task should block on IO
  *
- * Uses proper random number generation for realistic IO blocking simulation.
- * Each task has a probability-based chance to block on IO operations
- * based on its configured IO chance parameter.
+ * IOブロッキング判定システム (๑•́ ₃ •̀๑)
+ *
+ * リアルなIOブロッキングシミュレーションのための
+ * 適切な乱数生成を使用します。
+ * 各タスクは設定されたIO確率パラメータに基づいて、
+ * IO操作でブロックする確率ベースのチャンスを持ちます (｡•ㅅ•｡)♡
  */
 func (t *Task) shouldBlock() bool {
 	if t.IOChance <= 0 {
 		return false
 	}
-	// Use proper random number generation for IO blocking
-	// Formula: block_if(random_float < io_chance)
 	return rand.Float64() < t.IOChance
 }
 
-// Unblock moves the task from Blocked to Ready state
 func (t *Task) Unblock() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -146,7 +145,6 @@ func (t *Task) Unblock() {
 	}
 }
 
-// Start begins execution of the task
 func (t *Task) Start() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -160,7 +158,6 @@ func (t *Task) Start() {
 	}
 }
 
-// Stop pauses execution of the task
 func (t *Task) Stop() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -170,54 +167,46 @@ func (t *Task) Stop() {
 	}
 }
 
-// IsFinished returns true if the task has completed
 func (t *Task) IsFinished() bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.State == Finished
 }
 
-// GetState returns the current state of the task
 func (t *Task) GetState() TaskState {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.State
 }
 
-// GetRemaining returns the remaining CPU time
 func (t *Task) GetRemaining() int64 {
 	return atomic.LoadInt64(&t.Remaining)
 }
 
-// GetPriority returns the current priority level
 func (t *Task) GetPriority() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.Priority
 }
 
-// SetPriority sets the priority level
 func (t *Task) SetPriority(priority int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.Priority = priority
 }
 
-// GetWaitTime returns the total wait time
 func (t *Task) GetWaitTime() int64 {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.WaitTime
 }
 
-// AddWaitTime adds to the wait time
 func (t *Task) AddWaitTime(ticks int64) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.WaitTime += ticks
 }
 
-// String returns a string representation of the task
 func (t *Task) String() string {
 	t.mu.RLock()
 	defer t.mu.RUnlock()

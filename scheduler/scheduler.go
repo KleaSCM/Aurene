@@ -32,14 +32,12 @@ func NewQueue() *Queue {
 	}
 }
 
-// Push adds a task to the queue
 func (q *Queue) Push(t *task.Task) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	q.tasks = append(q.tasks, t)
 }
 
-// Pop removes and returns the highest priority task
 func (q *Queue) Pop() *task.Task {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -48,7 +46,6 @@ func (q *Queue) Pop() *task.Task {
 		return nil
 	}
 
-	// Find highest priority task (lowest number = highest priority)
 	highestPriority := q.tasks[0].GetPriority()
 	highestIndex := 0
 
@@ -59,7 +56,6 @@ func (q *Queue) Pop() *task.Task {
 		}
 	}
 
-	// Remove and return the task
 	t := q.tasks[highestIndex]
 	q.tasks = append(q.tasks[:highestIndex], q.tasks[highestIndex+1:]...)
 	return t
@@ -101,37 +97,32 @@ func (q *Queue) IsEmpty() bool {
 
 // Scheduler implements the MLFQ scheduling algorithm
 type Scheduler struct {
-	queues        []*Queue     // Priority queues (0 = highest priority)
-	currentTask   *task.Task   // Currently running task
-	blockedTasks  []*task.Task // Tasks blocked on IO
-	finishedTasks []*task.Task // Completed tasks
+	queues        []*Queue
+	currentTask   *task.Task
+	blockedTasks  []*task.Task
+	finishedTasks []*task.Task
 
-	// Configuration
-	numQueues  int   // Number of priority levels
-	timeSlice  []int // Time slice for each queue
-	agingTicks int   // Ticks before priority aging
+	numQueues  int
+	timeSlice  []int
+	agingTicks int
 
-	// Statistics
 	totalTicks      int64
 	contextSwitches int64
 	preemptions     int64
 
-	// Time slicing state
 	currentTimeSlice int // Current time slice counter
 	currentQueue     int // Current queue being served
 
-	// State management
 	mu       sync.RWMutex
 	running  bool
 	tickRate time.Duration // Default 250Hz = 4ms per tick
 
-	// Callbacks
-	onTick        func(int64)      // Called on each tick
-	onTaskStart   func(*task.Task) // Called when task starts
-	onTaskStop    func(*task.Task) // Called when task stops
-	onTaskFinish  func(*task.Task) // Called when task finishes
-	onTaskBlock   func(*task.Task) // Called when task blocks
-	onTaskUnblock func(*task.Task) // Called when task unblocks
+	onTick        func(int64)
+	onTaskStart   func(*task.Task)
+	onTaskStop    func(*task.Task)
+	onTaskFinish  func(*task.Task)
+	onTaskBlock   func(*task.Task)
+	onTaskUnblock func(*task.Task)
 }
 
 // NewScheduler creates a new MLFQ scheduler
@@ -167,7 +158,6 @@ func (s *Scheduler) AddTask(t *task.Task) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Add to highest priority queue (queue 0)
 	s.queues[0].Push(t)
 }
 
@@ -178,7 +168,6 @@ func (s *Scheduler) Tick() {
 
 	s.totalTicks++
 
-	// Handle aging
 	if s.totalTicks%int64(s.agingTicks) == 0 {
 		s.agePriorities()
 	}
@@ -186,7 +175,6 @@ func (s *Scheduler) Tick() {
 	// Unblock some tasks (simulate IO completion)
 	s.unblockTasks()
 
-	// Execute current task if running
 	if s.currentTask != nil && s.currentTask.GetState() == task.Running {
 		finished := s.currentTask.Execute()
 		if finished {
@@ -229,7 +217,6 @@ func (s *Scheduler) dispatchNextTask() {
 						s.onTaskStop(stoppedTask)
 					}
 
-					// Clear current task after stopping
 					s.currentTask = nil
 
 					s.currentTask = higherTask
@@ -348,11 +335,13 @@ func (s *Scheduler) unblockTasks() {
 /**
  * agePriorities prevents starvation by aging task priorities
  *
- * Implements proper priority aging to prevent low-priority task starvation.
- * Tasks gradually increase in priority over time to ensure fair scheduling.
+ * 優先度エイジングシステム (◕‿◕)✨
+ *
+ * 低優先度タスクの飢餓状態を防ぐための適切な優先度エイジングを実装します。
+ * タスクは時間とともに徐々に優先度が上がり、
+ * 公平なスケジューリングを確保します (◡‿◡)💕
  */
 func (s *Scheduler) agePriorities() {
-	// Age currently running task
 	if s.currentTask != nil {
 		newPriority := s.currentTask.GetPriority() + constants.PriorityAgingFactor
 		if newPriority >= s.numQueues {
@@ -361,12 +350,10 @@ func (s *Scheduler) agePriorities() {
 		s.currentTask.SetPriority(newPriority)
 	}
 
-	// Age tasks in all queues to prevent starvation
 	for i := 0; i < s.numQueues; i++ {
 		queue := s.queues[i]
 		tasks := make([]*task.Task, 0)
 
-		// Collect all tasks from this queue
 		for !queue.IsEmpty() {
 			t := queue.Pop()
 			if t != nil {
@@ -374,7 +361,6 @@ func (s *Scheduler) agePriorities() {
 			}
 		}
 
-		// Age priorities and redistribute to prevent starvation
 		for _, t := range tasks {
 			newPriority := t.GetPriority() + constants.PriorityAgingFactor
 			if newPriority >= s.numQueues {
@@ -393,7 +379,6 @@ func (s *Scheduler) Preempt() {
 
 	if s.currentTask != nil {
 		s.currentTask.Stop()
-		// Demote to lower priority queue
 		newPriority := s.currentTask.GetPriority() + 1
 		if newPriority >= s.numQueues {
 			newPriority = s.numQueues - 1
@@ -429,7 +414,6 @@ func (s *Scheduler) GetStats() map[string]interface{} {
 	stats["finished_tasks"] = len(s.finishedTasks)
 	stats["blocked_tasks"] = len(s.blockedTasks)
 
-	// Queue statistics
 	queueStats := make([]int, s.numQueues)
 	for i := 0; i < s.numQueues; i++ {
 		queueStats[i] = s.queues[i].Len()

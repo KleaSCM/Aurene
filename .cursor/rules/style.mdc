@@ -48,6 +48,7 @@ alwaysApply: true
 - Comments must explain **why**, not just **what**.
 - Algorithmic and mathematical sections must include formulas, derivations, and reasoning.
 - Follow Doxygen style comments **DO NOT EXPLAIN SYNTAX**
+- **ONLY** In the more difficult parts the documentation should be in Japanese writen in **Japanese FEMALE** tone **USE JAPANESE KAOMOJI** otherwise use english
 
 ### General
 - Write clean, modern, idiomatic code in each language.
