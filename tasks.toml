@@ -1,0 +1,119 @@
+# Aurene Scheduler Task Definitions
+# This file demonstrates real external task loading capabilities
+
+[metadata]
+name = "Real Math Workload"
+description = "Comprehensive mathematical computation tasks for testing Aurene scheduler"
+created_at = "2025-08-03T08:00:00Z"
+version = "1.0"
+author = "Aurene Scheduler"
+
+[[tasks]]
+id = 1
+name = "Matrix Multiplication 1000x1000"
+duration = 5000
+priority = 0
+io_chance = 0.1
+memory = 104857600
+group = "math"
+type = "matrix"
+complexity = 80
+
+[[tasks]]
+id = 2
+name = "Prime Number Sieve"
+duration = 2000
+priority = 1
+io_chance = 0.05
+memory = 10485760
+group = "math"
+type = "prime"
+complexity = 60
+
+[[tasks]]
+id = 3
+name = "Numerical Integration"
+duration = 8000
+priority = 0
+io_chance = 0.2
+memory = 209715200
+group = "math"
+type = "integration"
+complexity = 90
+
+[[tasks]]
+id = 4
+name = "Fast Fourier Transform"
+duration = 3000
+priority = 2
+io_chance = 0.15
+memory = 52428800
+group = "math"
+type = "fft"
+complexity = 70
+
+[[tasks]]
+id = 5
+name = "Linear Algebra Solver"
+duration = 4000
+priority = 1
+io_chance = 0.1
+memory = 78643200
+group = "math"
+type = "linear"
+complexity = 75
+
+[[tasks]]
+id = 6
+name = "Monte Carlo Simulation"
+duration = 6000
+priority = 3
+io_chance = 0.25
+memory = 157286400
+group = "math"
+type = "monte_carlo"
+complexity = 85
+
+[[tasks]]
+id = 7
+name = "Differential Equation Solver"
+duration = 10000
+priority = 0
+io_chance = 0.3
+memory = 262144000
+group = "math"
+type = "differential"
+complexity = 95
+
+[[tasks]]
+id = 8
+name = "Optimization Algorithm"
+duration = 3500
+priority = 2
+io_chance = 0.12
+memory = 62914560
+group = "math"
+type = "optimization"
+complexity = 65
+
+[[tasks]]
+id = 9
+name = "Statistical Analysis"
+duration = 2500
+priority = 1
+io_chance = 0.08
+memory = 41943040
+group = "math"
+type = "statistics"
+complexity = 55
+
+[[tasks]]
+id = 10
+name = "Cryptographic Hash"
+duration = 1500
+priority = 3
+io_chance = 0.02
+memory = 20971520
+group = "math"
+type = "crypto"
+complexity = 45 
