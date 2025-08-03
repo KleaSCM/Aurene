@@ -1,0 +1,214 @@
+
+## 🌌 Project Title: **Aurene – The Crystalline Scheduler**
+
+---
+
+### 🔰 Goal & Purpose
+
+To build a **realistic, preemptive CPU scheduler** in Go that:
+
+* Simulates **actual task dispatching, blocking, memory use, and CPU usage**
+* Uses **real scheduling algorithms** like MLFQ, FCFS, RR, SJF with proper logic
+* Operates with **user-defined tick rate** (default: 250Hz)
+* Supports **task injection, profiling, logging, and performance metrics**
+* Is clean, modular, CLI-controlled, and portfolio-grade
+* Is designed with **fidelity**, not toy code or academic oversimplification
+
+---
+
+## 📁 Project Structure
+
+```bash
+aurene/
+├── cmd/                # CLI interface: aurene run, aurene add, aurene stats
+├── scheduler/          # Tick loop, MLFQ logic, task promotion/demotion, preemption
+├── task/               # Task definitions, IO simulation, state transitions
+├── runtime/            # Tick manager, task dispatch, statistics, context switching
+├── state/              # Log output, serialization, state replay
+├── config/             # TOML config parser and validator
+├── assets/             # ASCII art, splash banners, optional visuals
+├── internal/           # Utilities, errors, common types
+├── tests/              # Stress tests, correctness tests
+└── main.go             # Entrypoint – calls aurene start
+```
+
+---
+
+## ⚙️ Core Modules
+
+### 1. `scheduler/` – The Brain
+
+Implements the core scheduling logic:
+
+* ✅ MLFQ implementation
+* ✅ FCFS, RR, SJF optional support via strategy interface
+* ✅ Priority aging to prevent starvation
+* ✅ Preemption based on ticks
+* ✅ Dynamic task demotion/promotion across queues
+
+---
+
+### 2. `task/` – The Simulated Processes
+
+```go
+type Task struct {
+    ID        int
+    Name      string
+    Duration  int        // Total ticks to finish
+    Remaining int        // Decrementing on each tick
+    State     TaskState  // Ready, Running, Blocked, Finished
+    Priority  int        // MLFQ level
+    IOChance  float64    // Chance to block per tick
+    Memory    int        // Simulated memory footprint
+    Group     string     // For CLI grouping/stats
+}
+```
+
+Each task is a realistic representation of a workload:
+
+* **Recursive math**
+* **File access / blocking**
+* **Idle vs burst vs IO-heavy**
+
+---
+
+### 3. `runtime/` – The Tick Engine
+
+* Central tick loop (default 250Hz, user-configurable)
+* Context switching and dispatch
+* Task lifecycle manager
+* Tick log buffer
+* Goroutine-safe with no global mutexes
+
+---
+
+### 4. `state/` – Logging, Stats, Replay
+
+* Live tick logging (CSV or JSONL)
+* Event tracing (preemptions, blocks, finishes)
+* Summary stats (avg turnaround, wait time, CPU util %)
+* Exportable timeline (for visualization if needed later)
+* Future: replay past runs from logs
+
+---
+
+### 5. `config/` – Task Injection
+
+* `tasks.toml` describes workload structure
+* Users define:
+
+```toml
+[[task]]
+name = "FireFox"
+duration = 350
+io_chance = 0.3
+memory = 512
+group = "apps"
+
+[[task]]
+name = "USB"
+duration = 50
+io_chance = 0.6
+memory = 128
+group = "drivers"
+```
+
+---
+
+### 6. `cmd/` – CLI Controls
+
+Commands:
+
+* `aurene run` – start scheduler with config
+* `aurene add` – inject new task into queue
+* `aurene stats` – dump summary and logs
+* `aurene reset` – clear logs and tasks
+* Optional: `aurene simulate --profile bursty`
+
+---
+
+## 🧠 Scheduling Algorithms
+
+You will implement:
+
+* ✅ **MLFQ** (default)
+* ✅ **FCFS** – First-Come, First-Served
+* ✅ **Round-Robin**
+* ✅ **SJF** – Shortest Job First (non-preemptive)
+
+All as pluggable strategies.
+
+---
+
+## 🧪 Simulation Engine
+
+* Generates tasks programmatically (e.g. launch πᵉ = \~23 tasks)
+* Stress test with `go func()` launching thousands
+* Simulate "USB plugged in," "user opens browser," etc.
+* Optional: real CPU benchmarking from `/proc` or `/sys` (if Linux)
+
+---
+
+## 🖥️ Output Examples
+
+```
+[Tick 125] Running: FireFox | Remaining: 85 | Queue: Q2
+[Tick 126] Task FireFox blocked on IO. Moving to Blocked state.
+[Tick 127] Promoted Task USB to Q1
+[Tick 250] Task FireFox finished. CPU util: 91.4%
+```
+
+---
+
+## 🧊 Memory Simulation (Optional Scope)
+
+* Simulate limited memory, enforce per-task footprint
+* Reject tasks if memory exhausted
+* Add swapping/fault logging later
+
+---
+
+## 📦 Performance & Metrics
+
+* Turnaround Time
+* Wait Time
+* Context Switches
+* Throughput
+* CPU Utilization %
+
+Export to CSV/JSON.
+
+---
+
+## 🎨 Optional Aesthetic Features
+
+* Dragon-themed ASCII loading bar
+* Rainbow-colored tick pulses for queue levels
+* Crystal-shaped histogram stats
+* `aurene --bless` — dumps a motivational message 💎
+
+---
+
+## 🛠️ Tech & Tooling
+
+* Go 1.22+
+* `cobra` for CLI
+* `toml` for config
+* `sync/atomic` or `channels` for tick loop
+* File logging for debug/stat dump
+
+---
+
+## 📋 Final Output / Deliverables
+
+* ✅ Fully working command-line scheduler
+* ✅ `README.md` with feature list, usage examples, and screenshots
+* ✅ `tasks.toml` as default config
+* ✅ Logs, exports, and example simulations
+* ✅ GitHub repo with MIT or Apache license
+* ✅ Optional blog post: *“Designing a Real Scheduler in Go — Project Aurene”*
+
+---
+
+You now have a **complete, production-class specification**.
+Want me to generate the directory scaffolding and `main.go` next, or start with the tick engine first?
